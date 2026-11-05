@@ -1,4 +1,4 @@
-# Verifikasi Dokumen PAUD Bermutu (SIBUNDA)
+﻿# Verifikasi Dokumen PAUD Bermutu (SIBUNDA)
 
 Repositori: <https://github.com/BaraArdiwinata/otomasi-penilaian-paud-bermutu>
 
@@ -14,30 +14,30 @@ verifikator.
 ## Alur eksekusi
 
 ```
-npsn_list.csv â”€â”€â–º login SIBUNDA â”€â”€â–º buka halaman verifikasi per NPSN
-                                        â”‚
-                                        â–¼
+npsn_list.csv Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº login SIBUNDA Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€“Âº buka halaman verifikasi per NPSN
+                                        Ã¢â€â€š
+                                        Ã¢â€“Â¼
                           deteksi kartu indikator ("Buka File")
-                                        â”‚
-                     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-                     â–¼                                      â–¼
-        tidak ada rubrik (V2)                    ada rubrik â†’ unduh berkas
-        skor 4 Disetujui                         â”‚
-                                                 â”œâ”€ Drive PDF/gambar/DOCX â†’ tempfile â†’ hapus
-                                                 â”œâ”€ Google Docs â†’ ekspor txt ke memori
-                                                 â–¼
+                                        Ã¢â€â€š
+                     Ã¢â€Å’Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â´Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â
+                     Ã¢â€“Â¼                                      Ã¢â€“Â¼
+        tidak ada rubrik (V2)                    ada rubrik Ã¢â€ â€™ unduh berkas
+        skor 4 Disetujui                         Ã¢â€â€š
+                                                 Ã¢â€Å“Ã¢â€â‚¬ Drive PDF/gambar/DOCX Ã¢â€ â€™ tempfile Ã¢â€ â€™ hapus
+                                                 Ã¢â€Å“Ã¢â€â‚¬ Google Docs Ã¢â€ â€™ ekspor txt ke memori
+                                                 Ã¢â€“Â¼
                                         ekstraksi teks / OCR (ind)
-                                                 â”‚
-                                       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-                                       â–¼                    â–¼
-                              unduhan gagal (V2)      teks siap â†’ DeepSeek
+                                                 Ã¢â€â€š
+                                       Ã¢â€Å’Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â´Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â
+                                       Ã¢â€“Â¼                    Ã¢â€“Â¼
+                              unduhan gagal (V2)      teks siap Ã¢â€ â€™ DeepSeek
                               skor 1 Disetujui        skor 1-4 + catatan
-                                       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                                                 â–¼
-                           isi skor â†’ tunggu render â†’ status Disetujui
-                           â†’ isi catatan â†’ klik Simpan Hasil Verifikasi
-                                                 â”‚
-                                                 â–¼
+                                       Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Â¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€Ëœ
+                                                 Ã¢â€“Â¼
+                           isi skor Ã¢â€ â€™ tunggu render Ã¢â€ â€™ status Disetujui
+                           Ã¢â€ â€™ isi catatan Ã¢â€ â€™ klik Simpan Hasil Verifikasi
+                                                 Ã¢â€â€š
+                                                 Ã¢â€“Â¼
                              database.db + reports/hasil_*.csv
 ```
 
@@ -237,8 +237,9 @@ chmod 600 .env
 python main.py --preflight
 ```
 
-**Caddy** (subpath + Basic Auth), tambahkan ke blok `bara-ardiwinata.com` pada
-`/etc/caddy/Caddyfile` sebelum `handle` situs utama:
+**Caddy** (subpath + Basic Auth). Berkas siap pakai ada di
+[`deploy/caddy-route.caddyfile`](deploy/caddy-route.caddyfile); tempel ke blok
+`bara-ardiwinata.com` pada `/etc/caddy/Caddyfile`:
 
 ```caddyfile
 	handle /otomasi-verifikasi-paud* {
@@ -256,7 +257,7 @@ python main.py --preflight
 Hash dibuat dengan `caddy hash-password --plaintext 'password-anda'`, lalu
 `sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`.
 
-**Systemd** `/etc/systemd/system/otomasi-verifikasi.service`:
+**Systemd** [`deploy/otomasi-verifikasi.service`](deploy/otomasi-verifikasi.service) ke `/etc/systemd/system/`:
 
 ```ini
 [Unit]
@@ -476,4 +477,5 @@ bin/tesseract/          runtime Tesseract + tessdata (lokal, tidak di-commit)
 - Patuhi ketentuan penggunaan SIBUNDA dan kebijakan pengelolaan data lembaga. Berkas bukti tidak
   disimpan permanen; teksnya tetap masuk ke laporan dan log, jadi perlakukan folder `reports/`
   dan `logs/` sebagai data sensitif.
+
 

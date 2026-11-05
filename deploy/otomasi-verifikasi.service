@@ -1,0 +1,19 @@
+[Unit]
+Description=Otomasi Verifikasi PAUD Bermutu (Streamlit)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/otomasi-verifikasi-paud
+Environment=HOME=/home/ubuntu
+EnvironmentFile=/home/ubuntu/otomasi-verifikasi-paud/.env
+ExecStart=/home/ubuntu/otomasi-verifikasi-paud/.venv/bin/streamlit run app.py --server.port 8501 --server.address 127.0.0.1 --server.baseUrlPath otomasi-verifikasi-paud --server.headless true --server.enableCORS false
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

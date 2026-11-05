@@ -1,0 +1,17 @@
+# Tempel potongan ini ke dalam blok situs pada /etc/caddy/Caddyfile.
+# Hash dibuat dengan: caddy hash-password --plaintext 'password-anda'
+#
+# Caddy dipakai, bukan Nginx, karena port 80/443 di VPS sudah dipegang Caddy
+# yang melayani situs lain. Menjalankan Nginx akan bentrok.
+
+handle /otomasi-verifikasi-paud* {
+	basic_auth {
+		verifikator <HASH-BCRYPT>
+	}
+	reverse_proxy 127.0.0.1:8501
+}
+
+# Semua path lain tetap ke situs utama.
+handle {
+	reverse_proxy 127.0.0.1:3000
+}

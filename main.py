@@ -8,6 +8,7 @@ import csv
 import json
 import logging
 import re
+import sqlite3
 import sys
 import time
 from dataclasses import replace
@@ -49,33 +50,111 @@ NO_RUBRIC_NOTE = "Indikator tidak memiliki rubrik penilaian di master, disetujui
 
 
 class ProgressStore:
-    """Menyimpan indikator yang sudah tersimpan agar run berikutnya bisa lanjut."""
+    """Menyimpan indikator yang sudah tersimpan di SQLite agar aman multi-user."""
 
     def __init__(self, path: Path) -> None:
         self.path = path
-        self.data: dict[str, dict] = {}
-        if path.exists():
-            try:
-                self.data = json.loads(path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError) as exc:
-                log.warning("state %s tidak terbaca (%s), mulai baru", path.name, exc)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(path), timeout=30, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS progress (
+                npsn TEXT NOT NULL,
+                indicator_key TEXT NOT NULL,
+                indikator TEXT,
+                kode TEXT,
+                aturan TEXT,
+                skor INTEGER,
+                status TEXT,
+                waktu TEXT,
+                PRIMARY KEY (npsn, indicator_key)
+            )
+            """
+        )
+        self._conn.commit()
+        self._migrate_from_json()
+
+    def _migrate_from_json(self) -> None:
+        legacy = self.path.parent / "progress.json"
+        if not legacy.exists():
+            return
+        count = self._conn.execute("SELECT COUNT(*) FROM progress").fetchone()[0]
+        if count:
+            return
+        try:
+            data = json.loads(legacy.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            log.warning("state lama %s tidak terbaca: %s", legacy.name, exc)
+            return
+
+        rows = []
+        for key, record in data.items():
+            if "::" not in key or not isinstance(record, dict):
+                continue
+            npsn, indicator_key = key.split("::", 1)
+            rows.append(
+                (
+                    npsn,
+                    indicator_key,
+                    record.get("indikator", ""),
+                    record.get("kode", ""),
+                    record.get("aturan", ""),
+                    record.get("skor"),
+                    record.get("status", ""),
+                    record.get("waktu", ""),
+                )
+            )
+        if not rows:
+            return
+        self._conn.executemany(
+            "INSERT OR REPLACE INTO progress VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows
+        )
+        self._conn.commit()
+        log.info("migrasi %d baris dari progress.json ke %s", len(rows), self.path.name)
 
     @staticmethod
     def _key(npsn: str, indicator_key: str) -> str:
         return f"{npsn}::{indicator_key}"
 
     def is_done(self, npsn: str, indicator_key: str) -> bool:
-        return self._key(npsn, indicator_key) in self.data
+        row = self._conn.execute(
+            "SELECT 1 FROM progress WHERE npsn = ? AND indicator_key = ?",
+            (npsn, indicator_key),
+        ).fetchone()
+        return row is not None
 
     def mark(self, npsn: str, indicator_key: str, record: dict) -> None:
-        self.data[self._key(npsn, indicator_key)] = record
-        self.save()
+        self._conn.execute(
+            """
+            INSERT INTO progress (npsn, indicator_key, indikator, kode, aturan, skor, status, waktu)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(npsn, indicator_key) DO UPDATE SET
+                indikator = excluded.indikator,
+                kode = excluded.kode,
+                aturan = excluded.aturan,
+                skor = excluded.skor,
+                status = excluded.status,
+                waktu = excluded.waktu
+            """,
+            (
+                npsn,
+                indicator_key,
+                record.get("indikator", ""),
+                record.get("kode", ""),
+                record.get("aturan", ""),
+                record.get("skor"),
+                record.get("status", ""),
+                record.get("waktu", ""),
+            ),
+        )
+        self._conn.commit()
 
     def save(self) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(self.data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        self._conn.commit()
+
+    def close(self) -> None:
+        self._conn.close()
 
 
 def setup_logging(settings: Settings, verbose: bool) -> Path:
@@ -178,7 +257,7 @@ class Runner:
         self.settings = settings
         self.args = args
         self.only = re.compile(args.only, re.I) if args.only else None
-        self.progress = ProgressStore(settings.state_dir / "progress.json")
+        self.progress = ProgressStore(settings.database_path)
         self.results: list[dict] = []
         self.counts = {SAVED: 0, SKIPPED: 0, FAILED: 0, DRY: 0}
 

@@ -1,0 +1,10 @@
+[server]
+headless = true
+fileWatcherType = "none"
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"

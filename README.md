@@ -14,31 +14,31 @@ verifikator.
 ## Alur eksekusi
 
 ```
-npsn_list.csv ──► login SIBUNDA ──► buka halaman verifikasi per NPSN
-                                        │
-                                        ▼
+npsn_list.csv â”€â”€â–º login SIBUNDA â”€â”€â–º buka halaman verifikasi per NPSN
+                                        â”‚
+                                        â–¼
                           deteksi kartu indikator ("Buka File")
-                                        │
-                     ┌──────────────────┴───────────────────┐
-                     ▼                                      ▼
-        tidak ada rubrik (V2)                    ada rubrik → unduh berkas
-        skor 4 Disetujui                         │
-                                                 ├─ Drive PDF/gambar/DOCX → tempfile → hapus
-                                                 ├─ Google Docs → ekspor txt ke memori
-                                                 ▼
+                                        â”‚
+                     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                     â–¼                                      â–¼
+        tidak ada rubrik (V2)                    ada rubrik â†’ unduh berkas
+        skor 4 Disetujui                         â”‚
+                                                 â”œâ”€ Drive PDF/gambar/DOCX â†’ tempfile â†’ hapus
+                                                 â”œâ”€ Google Docs â†’ ekspor txt ke memori
+                                                 â–¼
                                         ekstraksi teks / OCR (ind)
-                                                 │
-                                       ┌─────────┴──────────┐
-                                       ▼                    ▼
-                              unduhan gagal (V2)      teks siap → DeepSeek
+                                                 â”‚
+                                       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                                       â–¼                    â–¼
+                              unduhan gagal (V2)      teks siap â†’ DeepSeek
                               skor 1 Disetujui        skor 1-4 + catatan
-                                       └─────────┬──────────┘
-                                                 ▼
-                           isi skor → tunggu render → status Disetujui
-                           → isi catatan → klik Simpan Hasil Verifikasi
-                                                 │
-                                                 ▼
-                             state/progress.json + reports/hasil_*.csv
+                                       â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                                 â–¼
+                           isi skor â†’ tunggu render â†’ status Disetujui
+                           â†’ isi catatan â†’ klik Simpan Hasil Verifikasi
+                                                 â”‚
+                                                 â–¼
+                             database.db + reports/hasil_*.csv
 ```
 
 Rincian tiap langkah:
@@ -115,6 +115,8 @@ Semua kredensial dibaca dari `.env`. Gunakan `.env.example` sebagai template; `.
 | `GOOGLE_CREDENTIALS_FILE` | tidak | isi bila sheet rubrik tidak dibaca publik |
 | `MATCH_THRESHOLD` | tidak | ambang minimal kemiripan indikator (default 0.52) |
 | `MAX_DOC_CHARS` | tidak | batas teks yang dikirim ke AI (default 60000) |
+| `APP_PASSWORD` | ya (Web UI) | kata sandi halaman Streamlit |
+| `DATABASE_PATH` | tidak | lokasi SQLite, default `database.db` |
 
 Sheet dapat dibaca tanpa kredensial selama dibagikan "Anyone with the link". Bila tidak, buat
 service account Google, aktifkan Google Sheets API, bagikan sheet ke email service account
@@ -149,7 +151,7 @@ dan tidak bergantung pada kualitas teks:
 | Indikator di SIBUNDA tidak punya pasangan di rubrik | 4 | Disetujui | `Indikator tidak memiliki rubrik penilaian di master, disetujui otomatis.` |
 
 Keduanya tetap dicatat di `reports/hasil_*.csv` dengan kolom `rubrik_kode` kosong (kasus rubrik
-hilang) dan ditandai di `state/progress.json` lewat kunci `aturan` (`akses_drive` atau
+hilang) dan ditandai di `database.db` lewat kolom `aturan` (`akses_drive` atau
 `tanpa_rubrik`). Sesuai kebijakan V4, seluruh hasil akhir selalu `Disetujui`.
 
 ## Menjalankan
@@ -186,11 +188,109 @@ Default sekarang headful dengan `slow_mo` 500 ms, jadi setiap klik dan ketik bis
 langsung. Untuk proses massal, matikan jeda dengan `SIBUNDA_SLOW_MO_MS=0` di `.env` atau
 jalankan `python main.py --headless`.
 
+## Web UI (Streamlit)
+
+Untuk pemakaian harian, tersedia antarmuka web:
+
+```powershell
+streamlit run app.py
+```
+
+Buka `http://localhost:8501`, masuk dengan `APP_PASSWORD` dari `.env`, lalu:
+
+1. Unggah `npsn_list.csv` (header `NPSN`).
+2. Pilih opsi: dry-run, paksa ulang, batas indikator, filter regex.
+3. Klik **Mulai Verifikasi**; proses berjalan di subprocess `main.py` sehingga UI tetap responsif.
+4. Pantau tab **Log** (diperbarui tiap 2 detik) dan hentikan dengan **Hentikan** bila perlu.
+5. Unduh laporan CSV terbaru di tab **Hasil**.
+
+Proses hanya boleh satu pada satu waktu (`state/run.pid`), dan tombol Mulai dinonaktifkan selama
+proses berjalan.
+
+## Deployment VPS
+
+Panduan ini dipakai untuk VPS `43.156.71.169` (Ubuntu, Caddy, Docker). **Nginx tidak dipakai**
+karena port 80/443 sudah dipegang Caddy yang melayani situs lain; menambahkan Nginx akan bentrok.
+
+```bash
+# 1. Dependensi sistem
+sudo apt update
+sudo apt install -y python3-venv python3-pip tesseract-ocr tesseract-ocr-ind \
+  libgl1 libasound2t64 libnss3 libxkbcommon0 fonts-liberation
+
+# 2. Kode dan venv
+cd /home/ubuntu
+git clone https://github.com/BaraArdiwinata/otomasi-penilaian-paud-bermutu.git otomasi-verifikasi-paud
+cd otomasi-verifikasi-paud
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install --with-deps chromium
+
+# 3. Konfigurasi
+cp .env.example .env
+cp npsn_list.example.csv npsn_list.csv
+chmod 600 .env
+# isi kredensial, APP_PASSWORD, dan set SIBUNDA_HEADLESS=true
+
+# 4. Cek
+python main.py --preflight
+```
+
+**Caddy** (subpath + Basic Auth), tambahkan ke blok `bara-ardiwinata.com` pada
+`/etc/caddy/Caddyfile` sebelum `handle` situs utama:
+
+```caddyfile
+	handle /otomasi-verifikasi-paud* {
+		basic_auth {
+			verifikator <hash-bcrypt>
+		}
+		reverse_proxy 127.0.0.1:8501
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+```
+
+Hash dibuat dengan `caddy hash-password --plaintext 'password-anda'`, lalu
+`sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy`.
+
+**Systemd** `/etc/systemd/system/otomasi-verifikasi.service`:
+
+```ini
+[Unit]
+Description=Otomasi Verifikasi PAUD Bermutu
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/otomasi-verifikasi-paud
+Environment=HOME=/home/ubuntu
+EnvironmentFile=/home/ubuntu/otomasi-verifikasi-paud/.env
+ExecStart=/home/ubuntu/otomasi-verifikasi-paud/.venv/bin/streamlit run app.py \
+  --server.port 8501 --server.address 127.0.0.1 \
+  --server.baseUrlPath otomasi-verifikasi-paud --server.headless true --server.enableCORS false
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Aktifkan dengan `sudo systemctl daemon-reload && sudo systemctl enable --now otomasi-verifikasi`.
+Streamlit hanya mendengarkan `127.0.0.1:8501`, jadi tidak perlu membuka port baru di firewall.
+
 ## Hasil dan pemulihan
 
-- `logs/run_*.log` mencatat setiap langkah.
-- `state/progress.json` mencatat indikator yang sudah tersimpan. Jalankan ulang perintah yang
-  sama untuk melanjutkan; tambahkan `--force` bila ingin menilai ulang.
+- `logs/run_*.log` mencatat setiap langkah. Web UI menulis `logs/ui_run.log`.
+- `database.db` (SQLite) mencatat indikator yang sudah tersimpan. Jalankan ulang perintah yang
+  sama untuk melanjutkan; tambahkan `--force` bila ingin menilai ulang. State lama
+  `state/progress.json` dimigrasikan otomatis saat pertama kali dibuka.
 - `reports/hasil_*.csv` dan `.json` berisi ringkasan skor, status, catatan, dan galat. Kolom
   `dokumen` memuat nama berkas asli, bukan path.
 - `debug/` berisi screenshot saat terjadi kegagalan.
@@ -321,6 +421,10 @@ Yang sudah diverifikasi saat pengembangan (5 November 2026):
   status terpilih `Disetujui`, catatan terisi, dan tidak ada skor kosong yang tersimpan.
 - V4: urutan baru diuji pada halaman SIBUNDA asli tanpa menekan simpan: skor 4 bertahan setelah
   render ulang, status `Disetujui`, catatan terisi.
+- Web UI: login salah ditolak, login benar masuk, unggah CSV tersimpan, tombol Mulai tampil, dan
+  tab Hasil menyediakan unduhan CSV. Diuji dengan Playwright pada Streamlit lokal.
+- SQLite: migrasi `progress.json` ke `database.db` menghasilkan 3 baris, `is_done`/`mark` tetap
+  konsisten setelah database dibuka ulang, dan uji e2e menulis state ke SQLite.
 - V5: dokumen profil A-F dengan kekurangan kecil (website kosong, belum ditandatangani) dinilai
   skor 3, bukan 2.
 - V5: surat keterangan dengan kop, nomor, dan tujuan tetapi identitas kurang dinilai skor 3.
@@ -340,21 +444,27 @@ document_processor.py   unduh Drive, ekstraksi PDF/OCR/DOCX/Google Docs
 ai_evaluator.py         prompt dan klien DeepSeek dengan validasi JSON
 sibunda_bot.py          Playwright: login, navigasi, isi form, simpan
 main.py                 orkestrator, aturan bisnis, state, laporan, preflight
+app.py                  Web UI Streamlit (login, unggah CSV, run, log, unduh)
+.streamlit/config.toml  konfigurasi Streamlit (tanpa file watcher, toolbar minimal)
 setup_tesseract.py      siapkan Tesseract portable di bin/tesseract
 .env.example            template kredensial
 npsn_list.example.csv   contoh daftar NPSN
 npsn_list.csv           daftar NPSN kerja (lokal, tidak di-commit)
+database.db             state indikator di SQLite (lokal, tidak di-commit)
 bin/tesseract/          runtime Tesseract + tessdata (lokal, tidak di-commit)
 ```
 
 ## Keamanan dan data
 
 - Kredensial hanya ada di `.env` dan tidak pernah masuk repo. `.env`, `state/`, `logs/`,
-  `reports/`, `debug/`, `npsn_list.csv`, dan `bin/tesseract/` sudah diblokir `.gitignore`.
-- Sesi login disimpan di `state/auth.json` (cookie SIBUNDA). Hapus file itu bila ingin login
+  `reports/`, `debug/`, `npsn_list.csv`, `database.db`, dan `bin/tesseract/` sudah diblokir
+  `.gitignore`.
+- Web UI punya dua lapis akses: `APP_PASSWORD` di aplikasi dan Basic Auth di reverse proxy.
+  Ganti keduanya bila password pernah dibagikan.
+- Sesi login SIBUNDA disimpan di `state/auth.json` (cookie). Hapus file itu bila ingin login
   ulang atau memakai akun lain.
-- Berkas bukti tidak disimpan permanen, tetapi teks dokumen masuk ke `reports/` dan `logs/`.
-  Keduanya adalah data sensitif, jangan di-commit atau dibagikan.
+- Berkas bukti tidak disimpan permanen, tetapi teks dokumen masuk ke `reports/`, `logs/`, dan
+  `database.db`. Ketiganya data sensitif, jangan di-commit atau dibagikan.
 - Jalankan hanya pada akun yang berwenang, dan tetap periksa hasil sebelum diserahkan.
 
 ## Batasan
@@ -366,3 +476,4 @@ bin/tesseract/          runtime Tesseract + tessdata (lokal, tidak di-commit)
 - Patuhi ketentuan penggunaan SIBUNDA dan kebijakan pengelolaan data lembaga. Berkas bukti tidak
   disimpan permanen; teksnya tetap masuk ke laporan dan log, jadi perlakukan folder `reports/`
   dan `logs/` sebagai data sensitif.
+

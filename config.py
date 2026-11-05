@@ -112,6 +112,10 @@ class Settings:
     save_wait_ms: int
     rerender_wait_ms: int
 
+    # Web UI dan penyimpanan
+    app_password: str
+    database_path: Path
+
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
@@ -159,6 +163,8 @@ class Settings:
             skip_filled=_get_bool("SKIP_FILLED", True),
             save_wait_ms=_get_int("SAVE_WAIT_MS", 2_500),
             rerender_wait_ms=_get_int("RERENDER_WAIT_MS", 1_000),
+            app_password=_get("APP_PASSWORD"),
+            database_path=_get_path("DATABASE_PATH", BASE_DIR / "database.db"),
         )
 
     def url_login(self) -> str:
@@ -184,6 +190,7 @@ class Settings:
             self.debug_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
 
     def require_sibunda(self) -> None:
         if not self.username or not self.password:

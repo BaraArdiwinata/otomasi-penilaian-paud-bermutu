@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Kredensial dan data kerja lokal
+.env
+npsn_list.csv
+state/
+logs/
+reports/
+debug/
+
+# Runtime yang tidak perlu masuk repo
+bin/tesseract/
+
+*.log
+.DS_Store
